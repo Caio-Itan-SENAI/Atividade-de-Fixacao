@@ -1,0 +1,120 @@
+name: Pipeline de Implantacao
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Executar testes
+        run: npm test
+
+      - name: Executar build
+        run: npm run build
+
+      - name: Gerar artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: aplicacao
+          path: |
+            src/
+            migrations/
+            scripts/
+            package.json
+            package-lock.json
+
+
+  staging:
+    name: Deploy Staging
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: staging
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Executar migrations
+        env:
+          DB_HOST: ${{ secrets.STAGING_DB_HOST }}
+          DB_PORT: ${{ secrets.STAGING_DB_PORT }}
+          DB_NAME: ${{ secrets.STAGING_DB_NAME }}
+          DB_USER: ${{ secrets.STAGING_DB_USER }}
+          DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+        run: npm run migrate
+
+      - name: Deploy para Staging
+        run: |
+          echo "Deploy da aplicação em STAGING"
+
+      - name: Smoke Test
+        env:
+          SMOKE_TEST_URL: ${{ secrets.STAGING_URL }}
+        run: npm run smoke
+
+
+  production:
+    name: Deploy Production
+    needs: staging
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Executar migrations
+        env:
+          DB_HOST: ${{ secrets.PROD_DB_HOST }}
+          DB_PORT: ${{ secrets.PROD_DB_PORT }}
+          DB_NAME: ${{ secrets.PROD_DB_NAME }}
+          DB_USER: ${{ secrets.PROD_DB_USER }}
+          DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+        run: npm run migrate
+
+      - name: Deploy para Production
+        run: |
+          echo "Deploy da aplicação em PRODUÇÃO"
+
+      - name: Smoke Test Production
+        env:
+          SMOKE_TEST_URL: ${{ secrets.PROD_URL }}
+        run: npm run smoke
