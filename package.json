@@ -1,0 +1,20 @@
+{
+  "name": "sistema-estoque",
+  "version": "1.0.0",
+  "description": "Sistema de controle de estoque",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "jest --runInBand",
+    "migrate": "node scripts/migrate.js",
+    "smoke": "node scripts/smoke-test.js",
+    "build": "npm run build:app",
+    "build:app": "echo Build realizado com sucesso"
+  },
+  "dependencies": {
+    "mysql2": "^3.0.0"
+  },
+  "devDependencies": {
+    "jest": "^30.0.0"
+  }
+}
